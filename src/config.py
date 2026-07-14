@@ -135,3 +135,61 @@ class Config:
     def get_refresh_info(self):
         """Returns the refresh information."""
         return self.refresh_info
+
+    @staticmethod
+    def _to_int(value, default=0, min_value=0, max_value=10000):
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            parsed = default
+        return max(min_value, min(parsed, max_value))
+
+    @staticmethod
+    def _to_bool(value, default=False):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.lower() in ("true", "1", "yes", "on")
+        return default
+
+    def get_calibration(self):
+        """Returns normalized calibration settings used for global display adjustment."""
+        calibration = self.get_config("calibration", default={})
+        if not isinstance(calibration, dict):
+            calibration = {}
+
+        return {
+            "enabled": self._to_bool(calibration.get("enabled", False), default=False),
+            "margin_left": self._to_int(calibration.get("margin_left", 0), default=0),
+            "margin_right": self._to_int(calibration.get("margin_right", 0), default=0),
+            "margin_top": self._to_int(calibration.get("margin_top", 0), default=0),
+            "margin_bottom": self._to_int(calibration.get("margin_bottom", 0), default=0),
+        }
+
+    def set_calibration(self, calibration, write=True):
+        """Stores calibration settings in device config."""
+        normalized = {
+            "enabled": self._to_bool(calibration.get("enabled", False), default=False),
+            "margin_left": self._to_int(calibration.get("margin_left", 0), default=0),
+            "margin_right": self._to_int(calibration.get("margin_right", 0), default=0),
+            "margin_top": self._to_int(calibration.get("margin_top", 0), default=0),
+            "margin_bottom": self._to_int(calibration.get("margin_bottom", 0), default=0),
+        }
+        self.update_value("calibration", normalized, write=write)
+
+    def get_calibration_tool(self):
+        """Returns persisted UI defaults for the calibration tool."""
+        calibration_tool = self.get_config("calibration_tool", default={})
+        if not isinstance(calibration_tool, dict):
+            calibration_tool = {}
+
+        return {
+            "grid_step": self._to_int(calibration_tool.get("grid_step", 50), default=50, min_value=20, max_value=400),
+        }
+
+    def set_calibration_tool(self, calibration_tool, write=True):
+        """Stores calibration tool UI defaults in device config."""
+        normalized = {
+            "grid_step": self._to_int(calibration_tool.get("grid_step", 50), default=50, min_value=20, max_value=400),
+        }
+        self.update_value("calibration_tool", normalized, write=write)

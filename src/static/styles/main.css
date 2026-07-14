@@ -1132,9 +1132,18 @@ html[data-theme="dark"] .settings-button.dark-mode-toggle::before {
     transition: background 0.2s, border-color 0.2s;
 }
 
+.plugins-container .plugin-item.is-hidden {
+    display: none;
+}
+
 .plugins-container .plugin-item:hover {
     background: var(--button-bg);
     border-color: var(--text-secondary);
+}
+
+.plugins-container.sorting .plugin-item.is-hidden {
+    display: flex;
+    opacity: 0.55;
 }
 
 .plugins-container .plugin-item .icon-image {
@@ -1158,6 +1167,41 @@ html[data-theme="dark"] .settings-button.dark-mode-toggle::before {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.plugin-hide-toggle {
+    display: none;
+    width: 100%;
+    margin-top: 10px;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    background: var(--button-bg);
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.plugin-hide-toggle:hover {
+    background: var(--button-hover);
+}
+
+.plugins-container.sorting .plugin-hide-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.plugins-container.sorting .plugin-item.is-hidden .plugin-name {
+    color: var(--text-secondary);
+}
+
+.plugins-container.list-view .plugin-hide-toggle {
+    width: auto;
+    margin-top: 0;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 /* List View */
@@ -1189,6 +1233,10 @@ html[data-theme="dark"] .settings-button.dark-mode-toggle::before {
     width: auto;
     padding: 0;
     white-space: nowrap;
+}
+
+.plugins-container.list-view .plugin-item.is-hidden .plugin-name {
+    text-decoration: line-through;
 }
 
 /* Sorting Mode */

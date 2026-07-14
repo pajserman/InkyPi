@@ -89,7 +89,7 @@
             </div>
         </div>
 
-        <div class="sort-hint" id="sortHint">Drag plugins to reorder. Click "Save" when done.</div>
+        <div class="sort-hint" id="sortHint">Drag plugins to reorder. Use Hide/Show to remove plugins from the normal view, then click "Save" when done.</div>
 
         <div class="plugins-container" id="pluginsContainer">
             {% for plugin in plugins %}
@@ -102,6 +102,12 @@
                      alt="{{ plugin.display_name }}"
                      class="icon-image">
                 <span class="plugin-name">{{ plugin.display_name }}</span>
+                <button type="button"
+                        class="plugin-hide-toggle"
+                        data-plugin-id="{{ plugin.id }}"
+                        aria-label="Hide {{ plugin.display_name }}">
+                    Hide
+                </button>
             </a>
             {% endfor %}
         </div>
@@ -133,8 +139,53 @@
             // Sort mode
             const sortToggle = document.getElementById('sortToggle');
             const sortHint = document.getElementById('sortHint');
+            const hiddenPluginsStorageKey = 'inkypi-hidden-plugins';
             let isSorting = false;
             let draggedItem = null;
+            let hiddenPlugins = new Set();
+
+            function loadHiddenPlugins() {
+                try {
+                    const storedValue = localStorage.getItem(hiddenPluginsStorageKey);
+                    const parsedValue = storedValue ? JSON.parse(storedValue) : [];
+                    hiddenPlugins = new Set(Array.isArray(parsedValue) ? parsedValue : []);
+                } catch (error) {
+                    hiddenPlugins = new Set();
+                }
+            }
+
+            function saveHiddenPlugins() {
+                localStorage.setItem(hiddenPluginsStorageKey, JSON.stringify(Array.from(hiddenPlugins)));
+            }
+
+            function updateHiddenPluginButtons() {
+                document.querySelectorAll('.plugin-item').forEach(item => {
+                    const pluginId = item.dataset.pluginId;
+                    const hideButton = item.querySelector('.plugin-hide-toggle');
+                    const isHidden = hiddenPlugins.has(pluginId);
+
+                    item.classList.toggle('is-hidden', isHidden);
+
+                    if (hideButton) {
+                        hideButton.textContent = isHidden ? 'Show' : 'Hide';
+                        hideButton.setAttribute('aria-label', `${isHidden ? 'Show' : 'Hide'} ${item.title}`);
+                    }
+                });
+            }
+
+            function togglePluginHiddenState(pluginId) {
+                if (hiddenPlugins.has(pluginId)) {
+                    hiddenPlugins.delete(pluginId);
+                } else {
+                    hiddenPlugins.add(pluginId);
+                }
+
+                saveHiddenPlugins();
+                updateHiddenPluginButtons();
+            }
+
+            loadHiddenPlugins();
+            updateHiddenPluginButtons();
 
             function enableSorting() {
                 isSorting = true;
@@ -245,6 +296,18 @@
                 } else {
                     enableSorting();
                 }
+            });
+
+            pluginsContainer.addEventListener('click', (event) => {
+                const hideButton = event.target.closest('.plugin-hide-toggle');
+
+                if (!hideButton || !isSorting) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                togglePluginHiddenState(hideButton.dataset.pluginId);
             });
         </script>
     </div>

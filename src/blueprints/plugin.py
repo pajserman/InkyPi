@@ -1,10 +1,12 @@
-from flask import Blueprint, request, jsonify, current_app, render_template, send_from_directory
+from flask import Blueprint, request, jsonify, current_app, render_template, send_from_directory, send_file
 from plugins.plugin_registry import get_plugin_instance
 from utils.app_utils import resolve_path, handle_request_files, parse_form
 from refresh_task import ManualRefresh, PlaylistRefresh
 import json
 import os
 import logging
+from io import BytesIO
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 plugin_bp = Blueprint("plugin", __name__)
@@ -42,6 +44,18 @@ def plugin_page(plugin_id):
         try:
             plugin = get_plugin_instance(plugin_config)
             template_params = plugin.generate_settings_template()
+
+            if plugin_id == "calibrate":
+                calibration = device_config.get_calibration()
+                calibration_tool = device_config.get_calibration_tool()
+                template_params["calibration_defaults"] = {
+                    "apply_global": "true" if calibration.get("enabled") else "false",
+                    "margin_top": calibration.get("margin_top", 0),
+                    "margin_right": calibration.get("margin_right", 0),
+                    "margin_bottom": calibration.get("margin_bottom", 0),
+                    "margin_left": calibration.get("margin_left", 0),
+                    "grid_step": calibration_tool.get("grid_step", 50),
+                }
 
             # retrieve plugin instance from the query parameters if updating existing plugin instance
             plugin_instance_name = request.args.get('instance')
@@ -115,8 +129,25 @@ def plugin_instance_image(playlist_name, plugin_id, instance_name):
         # Return a placeholder or 404
         return "Image not yet generated", 404
 
-    # Serve the image
-    return send_from_directory(device_config.plugin_image_dir, image_filename)
+    plugin_config = device_config.get_plugin(plugin_id)
+    image_settings = plugin_config.get("image_settings", []) if plugin_config else []
+    display_manager = current_app.config['DISPLAY_MANAGER']
+
+    with Image.open(image_path) as img:
+        processed = display_manager.prepare_image_for_display(
+            img.copy(),
+            image_settings=image_settings,
+            bypass_calibration=(plugin_id.lower() == "calibrate")
+        )
+
+    img_io = BytesIO()
+    processed.save(img_io, "PNG")
+    img_io.seek(0)
+
+    response = send_file(img_io, mimetype='image/png')
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    return response
 
 @plugin_bp.route('/delete_plugin_instance', methods=['POST'])
 def delete_plugin_instance():
@@ -249,7 +280,11 @@ def update_now():
 
             plugin = get_plugin_instance(plugin_config)
             image = plugin.generate_image(plugin_settings, device_config)
-            display_manager.display_image(image, image_settings=plugin_config.get("image_settings", []))
+            display_manager.display_image(
+                image,
+                image_settings=plugin_config.get("image_settings", []),
+                plugin_id=plugin_id
+            )
 
     except Exception as e:
         logger.exception(f"Error in update_now: {str(e)}")

@@ -1,0 +1,63 @@
+<div class="form-group">
+    <label for="grid_step" class="form-label">Grid Step (px)</label>
+    <input type="number" id="grid_step" name="grid_step" class="form-input" value="50" min="20" max="400" step="10"
+        required>
+</div>
+
+<div class="form-group">
+    <label for="apply_global" class="form-label">Apply Calibration To All Plugins</label>
+    <select id="apply_global" name="apply_global" class="form-input">
+        <option value="true" selected>Enabled</option>
+        <option value="false">Disabled</option>
+    </select>
+</div>
+
+<div class="form-group">
+    <label for="margin_top" class="form-label">Top Hidden Margin (px)</label>
+    <input type="number" id="margin_top" name="margin_top" class="form-input" value="0" min="0" step="1" required>
+</div>
+
+<div class="form-group">
+    <label for="margin_right" class="form-label">Right Hidden Margin (px)</label>
+    <input type="number" id="margin_right" name="margin_right" class="form-input" value="0" min="0" step="1" required>
+</div>
+
+<div class="form-group">
+    <label for="margin_bottom" class="form-label">Bottom Hidden Margin (px)</label>
+    <input type="number" id="margin_bottom" name="margin_bottom" class="form-input" value="0" min="0" step="1" required>
+</div>
+
+<div class="form-group">
+    <label for="margin_left" class="form-label">Left Hidden Margin (px)</label>
+    <input type="number" id="margin_left" name="margin_left" class="form-input" value="0" min="0" step="1" required>
+</div>
+
+<div class="form-group">
+    <span style="color: var(--text-primary);">
+        Increase each margin value until the thick VISIBLE AREA box exactly matches what can be seen through your frame
+        window.
+    </span>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const calibrationDefaults = {{ calibration_defaults | default ({ 'apply_global': 'true', 'grid_step': 50, 'margin_top': 0, 'margin_right': 0, 'margin_bottom': 0, 'margin_left': 0 }) | tojson
+    }};
+
+    if (loadPluginSettings) {
+        document.getElementById('apply_global').value = pluginSettings.apply_global === 'false' ? 'false' : 'true';
+        document.getElementById('grid_step').value = pluginSettings.grid_step || 50;
+        document.getElementById('margin_top').value = pluginSettings.margin_top || 0;
+        document.getElementById('margin_right').value = pluginSettings.margin_right || 0;
+        document.getElementById('margin_bottom').value = pluginSettings.margin_bottom || 0;
+        document.getElementById('margin_left').value = pluginSettings.margin_left || 0;
+    } else {
+        document.getElementById('apply_global').value = calibrationDefaults.apply_global || 'true';
+        document.getElementById('grid_step').value = calibrationDefaults.grid_step ?? 50;
+        document.getElementById('margin_top').value = calibrationDefaults.margin_top ?? 0;
+        document.getElementById('margin_right').value = calibrationDefaults.margin_right ?? 0;
+        document.getElementById('margin_bottom').value = calibrationDefaults.margin_bottom ?? 0;
+        document.getElementById('margin_left').value = calibrationDefaults.margin_left ?? 0;
+    }
+    });
+</script>

@@ -6,6 +6,13 @@
         480
     ],
     "orientation": "horizontal",
+    "calibration": {
+        "enabled": false,
+        "margin_left": 50,
+        "margin_right": 50,
+        "margin_top": 50,
+        "margin_bottom": 50
+    },
     "plugin_order": [
         "calendar",
         "ai_image",
@@ -41,9 +48,12 @@
         "active_playlist": null
     },
     "refresh_info": {
-        "refresh_time": null,
-        "image_hash": null,
-        "refresh_type": null,
-        "plugin_id": null
+        "refresh_time": "2026-07-14T13:18:52.818086+00:00",
+        "image_hash": "c88c3726782913060c54c59a7a0b84b73e829b95f1eba4a7b1b3e4e6d3fb017e",
+        "refresh_type": "Manual Update",
+        "plugin_id": "calibrate"
+    },
+    "calibration_tool": {
+        "grid_step": 50
     }
 }
