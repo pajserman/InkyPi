@@ -57,6 +57,15 @@ def plugin_page(plugin_id):
                     "grid_step": calibration_tool.get("grid_step", 50),
                 }
 
+            if plugin_id == "native_palette":
+                color_map = device_config.get_color_map()
+                template_params["color_map_defaults"] = {
+                    "apply_global": "true" if color_map.get("enabled") else "false",
+                    "allow_dithering": "true" if color_map.get("allow_dithering") else "false",
+                    "noise_amplitude": color_map.get("noise_amplitude", 64),
+                    "saturation_threshold": color_map.get("saturation_threshold", 40),
+                }
+
             # retrieve plugin instance from the query parameters if updating existing plugin instance
             plugin_instance_name = request.args.get('instance')
             if plugin_instance_name:
@@ -76,6 +85,88 @@ def plugin_page(plugin_id):
         return render_template('plugin.html', plugin=plugin_config, **template_params)
     else:
         return "Plugin not found", 404
+
+@plugin_bp.route('/native_palette/apply', methods=['POST'])
+def native_palette_apply():
+    """Persist native palette color mapping settings from the plugin page."""
+    device_config = current_app.config['DEVICE_CONFIG']
+    try:
+        form = request.form
+        color_map = {
+            "enabled": form.get("apply_global"),
+            "allow_dithering": form.get("allow_dithering"),
+            "noise_amplitude": form.get("noise_amplitude"),
+            "saturation_threshold": form.get("saturation_threshold"),
+        }
+        device_config.set_color_map(color_map, write=True)
+    except Exception as e:
+        logger.exception("EXCEPTION CAUGHT: " + str(e))
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+    return jsonify({"success": True, "message": "Applied color mapping settings."})
+
+@plugin_bp.route('/native_palette/preview')
+def native_palette_preview():
+    """Render a preview with the current color mapping settings.
+
+    Query param `source` selects what is mapped:
+    - "last" (default): the last displayed content image.
+    - "palette": the plugin's color test card.
+    """
+    device_config = current_app.config['DEVICE_CONFIG']
+    display_manager = current_app.config['DISPLAY_MANAGER']
+
+    # Optional live-preview overrides from query params (used while dragging the
+    # sliders, before the settings are saved).
+    color_map_override = None
+    override_keys = ("apply_global", "allow_dithering", "noise_amplitude", "saturation_threshold")
+    if any(key in request.args for key in override_keys):
+        def _truthy(value):
+            return str(value).lower() in ("true", "1", "on", "yes")
+        color_map_override = {
+            "enabled": _truthy(request.args.get("apply_global", "false")),
+            "allow_dithering": _truthy(request.args.get("allow_dithering", "false")),
+            "noise_amplitude": request.args.get("noise_amplitude", 64),
+            "saturation_threshold": request.args.get("saturation_threshold", 40),
+        }
+
+    source_kind = request.args.get("source", "last")
+    image_settings = []
+
+    if source_kind == "palette":
+        # Build the plugin's color test card at the display resolution.
+        plugin_config = device_config.get_plugin("native_palette")
+        plugin = get_plugin_instance(plugin_config)
+        width, height = device_config.get_resolution()
+        if device_config.get_config("orientation") == "vertical":
+            width, height = height, width
+        effective = color_map_override if color_map_override is not None else device_config.get_color_map()
+        source = plugin._draw_test_card(
+            width, height, bool(effective.get("enabled")), bool(effective.get("allow_dithering")))
+    else:
+        source, image_settings = display_manager.get_preview_source()
+        if source is None:
+            # Fall back to the last displayed image if no source has been cached yet.
+            image_path = device_config.current_image_file
+            if not os.path.exists(image_path):
+                return "No image available", 404
+            with Image.open(image_path) as img:
+                source = img.copy()
+
+    try:
+        processed = display_manager.prepare_image_for_display(
+            source.copy(), image_settings=image_settings, color_map_override=color_map_override)
+    except Exception as e:
+        logger.exception("EXCEPTION CAUGHT: " + str(e))
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+    img_io = BytesIO()
+    processed.convert("RGB").save(img_io, "PNG")
+    img_io.seek(0)
+
+    response = send_file(img_io, mimetype='image/png')
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    return response
 
 @plugin_bp.route('/images/<plugin_id>/<path:filename>')
 def image(plugin_id, filename):

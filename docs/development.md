@@ -57,7 +57,7 @@ devbox run dev # alternatively run `devbox shell` and then run `python src/inkyp
 </tr>
 </table>
 
-**That's it!** Open http://localhost:8080 and start developing.
+**That's it!** Open http://localhost:8085 and start developing.
 
 ## What You Can Do
 

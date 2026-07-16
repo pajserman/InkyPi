@@ -1141,6 +1141,37 @@ html[data-theme="dark"] .settings-button.dark-mode-toggle::before {
     border-color: var(--text-secondary);
 }
 
+/* Special card treatment for utility plugins on the main plugin page. */
+.plugins-container .plugin-item[data-plugin-id="calibrate"],
+.plugins-container .plugin-item[data-plugin-id="native_palette"] {
+    background: darkslategray;
+    border-color: #1f3f3f;
+    color: #f2f7f7;
+}
+
+.plugins-container .plugin-item[data-plugin-id="calibrate"] .plugin-name,
+.plugins-container .plugin-item[data-plugin-id="native_palette"] .plugin-name {
+    color: #f2f7f7;
+}
+
+.plugins-container .plugin-item[data-plugin-id="calibrate"] .plugin-hide-toggle,
+.plugins-container .plugin-item[data-plugin-id="native_palette"] .plugin-hide-toggle {
+    color: #f2f7f7;
+    border-color: #7da0a0;
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.plugins-container .plugin-item[data-plugin-id="calibrate"]:hover,
+.plugins-container .plugin-item[data-plugin-id="native_palette"]:hover {
+    background: darkslategray;
+    border-color: #274a4a;
+}
+
+.plugins-container .plugin-item[data-plugin-id="calibrate"] .icon-image,
+.plugins-container .plugin-item[data-plugin-id="native_palette"] .icon-image {
+    filter: invert(1) !important;
+}
+
 .plugins-container.sorting .plugin-item.is-hidden {
     display: flex;
     opacity: 0.55;
@@ -1248,6 +1279,13 @@ html[data-theme="dark"] .settings-button.dark-mode-toggle::before {
 .plugins-container.sorting .plugin-item:hover {
     border-color: #4CAF50;
     background: rgba(76, 175, 80, 0.05);
+}
+
+/* Keep special plugin cards readable while sorting mode is active. */
+.plugins-container.sorting .plugin-item[data-plugin-id="calibrate"]:hover,
+.plugins-container.sorting .plugin-item[data-plugin-id="native_palette"]:hover {
+    background: darkslategray;
+    border-color: #274a4a;
 }
 
 .plugins-container.sorting .plugin-item.dragging {

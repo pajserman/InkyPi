@@ -43,3 +43,16 @@ class AbstractDisplay:
             NotImplementedError: If not implemented in a subclass.
         """
         raise NotImplementedError("Method 'display_image(...) must be provided in a subclass.")
+
+    def get_palette(self):
+        """
+        Returns the list of native display colors as [R, G, B] triples, or None if
+        the display has no fixed palette (e.g. mock display or unknown hardware).
+
+        Subclasses backed by a fixed color e-paper panel should override this to
+        expose their supported colors so images can be mapped to them.
+
+        Returns:
+            list[list[int]] | None: Supported colors as RGB triples, or None.
+        """
+        return None

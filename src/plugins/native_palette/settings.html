@@ -1,0 +1,146 @@
+<div class="form-group">
+    <label class="form-label">Last Displayed Image (Preview)</label>
+    <div style="display: flex; justify-content: center; margin: 8px 0;">
+        <img id="npPreview" src="{{ url_for('plugin.native_palette_preview') }}"
+            alt="Preview of the last displayed image with the current color mapping"
+            style="max-width: 100%; height: auto; border: 1px solid var(--border-color, #ccc); border-radius: 6px; background: #fff;"
+            onerror="this.style.display='none'; document.getElementById('npPreviewEmpty').style.display='block';" />
+        <span id="npPreviewEmpty" style="display: none; color: var(--text-primary);">
+            No image has been displayed yet. Display any plugin, then return here to preview.
+        </span>
+    </div>
+</div>
+
+<div class="form-group">
+    <label class="form-label">Palette Test Card (Preview)</label>
+    <div style="display: flex; justify-content: center; margin: 8px 0;">
+        <img id="npPalettePreview" src="{{ url_for('plugin.native_palette_preview', source='palette') }}"
+            alt="Color test card mapped with the current color mapping settings"
+            style="max-width: 100%; height: auto; border: 1px solid var(--border-color, #ccc); border-radius: 6px; background: #fff;" />
+    </div>
+</div>
+
+<div class="form-group">
+    <label for="apply_global" class="form-label">Map All Colors To Native Palette</label>
+    <select id="apply_global" name="apply_global" class="form-input">
+        <option value="true" selected>Enabled</option>
+        <option value="false">Disabled</option>
+    </select>
+</div>
+
+<div class="form-group">
+    <label for="allow_dithering" class="form-label">Allow Some Dithering</label>
+    <select id="allow_dithering" name="allow_dithering" class="form-input">
+        <option value="false" selected>Disabled</option>
+        <option value="true">Enabled</option>
+    </select>
+</div>
+
+<div class="form-group nowrap">
+    <label for="saturation_threshold" class="form-label">Color Sensitivity: <span id="satValue">40</span></label>
+    <input type="range" id="saturation_threshold" name="saturation_threshold" class="form-input" min="0" max="128" step="1"
+        value="40" oninput="document.getElementById('satValue').textContent = this.value;">
+</div>
+
+<div class="form-group nowrap">
+    <label for="noise_amplitude" class="form-label">Dithering Noise: <span id="noiseValue">64</span></label>
+    <input type="range" id="noise_amplitude" name="noise_amplitude" class="form-input" min="0" max="255" step="1"
+        value="64" oninput="document.getElementById('noiseValue').textContent = this.value;">
+</div>
+
+<div class="form-group">
+    <span style="color: var(--text-primary);">
+        When mapping is enabled, images are mapped to the closest colors your display can show.
+        "Dithering Noise" only applies when dithering is enabled: higher values reproduce shades
+        better but look grainier. "Color Sensitivity" affects the non-dithering mode: lower values
+        make more faintly-colored pixels snap to a color instead of grey/white. Click "Apply" to
+        save these settings and update the preview above.
+    </span>
+</div>
+
+<div class="form-group">
+    <button type="button" id="npApplyButton" class="action-button" onclick="applyNativePalette()">Apply</button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const colorMapDefaults = {{ color_map_defaults | default({ 'apply_global': 'false', 'allow_dithering': 'false', 'noise_amplitude': 64, 'saturation_threshold': 40 }) | tojson }};
+
+        const applyGlobal = document.getElementById('apply_global');
+        const allowDithering = document.getElementById('allow_dithering');
+        const noise = document.getElementById('noise_amplitude');
+        const sat = document.getElementById('saturation_threshold');
+
+        if (loadPluginSettings) {
+            applyGlobal.value = pluginSettings.apply_global === 'false' ? 'false' : 'true';
+            allowDithering.value = pluginSettings.allow_dithering === 'true' ? 'true' : 'false';
+            noise.value = pluginSettings.noise_amplitude ?? 64;
+            sat.value = pluginSettings.saturation_threshold ?? 40;
+        } else {
+            applyGlobal.value = colorMapDefaults.apply_global || 'false';
+            allowDithering.value = colorMapDefaults.allow_dithering || 'false';
+            noise.value = colorMapDefaults.noise_amplitude ?? 64;
+            sat.value = colorMapDefaults.saturation_threshold ?? 40;
+        }
+        document.getElementById('noiseValue').textContent = noise.value;
+        document.getElementById('satValue').textContent = sat.value;
+
+        // Live preview: update the image as the controls change (debounced),
+        // rendering the source with the current control values without saving.
+        [applyGlobal, allowDithering, noise, sat].forEach(el => {
+            el.addEventListener('input', schedulePreview);
+            el.addEventListener('change', schedulePreview);
+        });
+        updatePreview();
+    });
+
+    let previewTimer = null;
+    function schedulePreview() {
+        clearTimeout(previewTimer);
+        previewTimer = setTimeout(updatePreview, 150);
+    }
+
+    function updatePreview() {
+        const params = new URLSearchParams({
+            apply_global: document.getElementById('apply_global').value,
+            allow_dithering: document.getElementById('allow_dithering').value,
+            noise_amplitude: document.getElementById('noise_amplitude').value,
+            saturation_threshold: document.getElementById('saturation_threshold').value,
+            t: Date.now()
+        });
+        const preview = document.getElementById('npPreview');
+        preview.style.display = '';
+        document.getElementById('npPreviewEmpty').style.display = 'none';
+        preview.src = "{{ url_for('plugin.native_palette_preview') }}?" + params.toString();
+
+        const palettePreview = document.getElementById('npPalettePreview');
+        palettePreview.src = "{{ url_for('plugin.native_palette_preview', source='palette') }}&" + params.toString();
+    }
+
+    async function applyNativePalette() {
+        const button = document.getElementById('npApplyButton');
+        button.disabled = true;
+        try {
+            const data = new FormData();
+            data.append('apply_global', document.getElementById('apply_global').value);
+            data.append('allow_dithering', document.getElementById('allow_dithering').value);
+            data.append('noise_amplitude', document.getElementById('noise_amplitude').value);
+            data.append('saturation_threshold', document.getElementById('saturation_threshold').value);
+
+            const response = await fetch("{{ url_for('plugin.native_palette_apply') }}", { method: 'POST', body: data });
+            const result = await response.json();
+            if (response.ok) {
+                // Refresh the preview with the applied (saved) settings.
+                updatePreview();
+                showResponseModal('success', `Success! ${result.message}`);
+            } else {
+                showResponseModal('failure', `Error! ${result.error}`);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showResponseModal('failure', 'An error occurred while applying settings.');
+        } finally {
+            button.disabled = false;
+        }
+    }
+</script>

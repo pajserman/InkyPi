@@ -8,6 +8,12 @@
         "margin_top": 0,
         "margin_bottom": 0
     },
+    "color_map": {
+        "enabled": false,
+        "allow_dithering": false,
+        "noise_amplitude": 64,
+        "saturation_threshold": 40
+    },
     "inverted_image": false,
     "scheduler_sleep_time": 60,
     "startup": true

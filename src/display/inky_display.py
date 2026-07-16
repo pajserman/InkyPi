@@ -37,6 +37,25 @@ class InkyDisplay(AbstractDisplay):
                 [int(self.inky_display.width), int(self.inky_display.height)], 
                 write=True)
 
+    def get_palette(self):
+        """
+        Returns the Inky panel's supported colors as [R, G, B] triples.
+
+        The colors are read from the auto-detected inky driver's desaturated
+        palette (the canonical RGB targets used when mapping incoming colors).
+        Duplicate/CLEAN entries are removed so each supported color appears once.
+        """
+        palette = getattr(self.inky_display, "DESATURATED_PALETTE", None)
+        if not palette:
+            return None
+
+        deduped = []
+        for color in palette:
+            rgb = [int(c) for c in color[:3]]
+            if rgb not in deduped:
+                deduped.append(rgb)
+        return deduped or None
+
     def display_image(self, image, image_settings=[]):
         
         """

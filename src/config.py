@@ -16,6 +16,10 @@ class Config:
     # File path for storing the current image being displayed
     current_image_file = os.path.join(BASE_DIR, "static", "images", "current_image.png")
 
+    # File path for storing the last raw (pre-processing) source image, used to
+    # preview native palette color mapping setting changes across restarts.
+    color_map_source_file = os.path.join(BASE_DIR, "static", "images", "color_map_source.png")
+
     # Directory path for storing plugin instance images
     plugin_image_dir = os.path.join(BASE_DIR, "static", "images", "plugins")
 
@@ -193,3 +197,26 @@ class Config:
             "grid_step": self._to_int(calibration_tool.get("grid_step", 50), default=50, min_value=20, max_value=400),
         }
         self.update_value("calibration_tool", normalized, write=write)
+
+    def get_color_map(self):
+        """Returns normalized native palette color mapping settings applied globally."""
+        color_map = self.get_config("color_map", default={})
+        if not isinstance(color_map, dict):
+            color_map = {}
+
+        return {
+            "enabled": self._to_bool(color_map.get("enabled", False), default=False),
+            "allow_dithering": self._to_bool(color_map.get("allow_dithering", False), default=False),
+            "noise_amplitude": self._to_int(color_map.get("noise_amplitude", 64), default=64, min_value=0, max_value=255),
+            "saturation_threshold": self._to_int(color_map.get("saturation_threshold", 40), default=40, min_value=0, max_value=128),
+        }
+
+    def set_color_map(self, color_map, write=True):
+        """Stores native palette color mapping settings in device config."""
+        normalized = {
+            "enabled": self._to_bool(color_map.get("enabled", False), default=False),
+            "allow_dithering": self._to_bool(color_map.get("allow_dithering", False), default=False),
+            "noise_amplitude": self._to_int(color_map.get("noise_amplitude", 64), default=64, min_value=0, max_value=255),
+            "saturation_threshold": self._to_int(color_map.get("saturation_threshold", 40), default=40, min_value=0, max_value=128),
+        }
+        self.update_value("color_map", normalized, write=write)
